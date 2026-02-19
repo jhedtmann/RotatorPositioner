@@ -17,6 +17,7 @@ MQTT payloads are composed of JSON objects. There are three topics (to date):
     "ts" : 1771493560427,
     "azimuth" : 47.33,
     "elevation" : 19.13,
+    "revolutions": -1,
     "units" : {
       "ts" : "milliseconds",
       "orientation" : "decimal degrees"
@@ -57,12 +58,12 @@ MQTT payloads are composed of JSON objects. There are three topics (to date):
   Serial output data is formatted as an NMEA-sentence with a checksum value calculated over the data of the sentence (as per NMEA-specification).
 
   ```nmea
-  $PATRK,1771493857399,ms,47.33,dd,19.13,dd,0,3,1,0*<HH>\r\n   
+  $PANT,TRK,1771493857399,ms,47.33,dd,19.13,dd,-1,revs,0,3,1,0*<HH>\r\n   
   ```
   - "$" : Start of Sentence identifier
-  - "PATRK": The Talker and Payload identifier
+  - "PANT,TRK": The Talker and Payload identifier
     - "P": proprietory message, 
-    - "A": antenna, 
+    - "ANT": antenna, 
     - "TRK": tracker
   - "1771493857399": Timestamp
   - "ms": Timestamp is in milliseconds
@@ -70,6 +71,8 @@ MQTT payloads are composed of JSON objects. There are three topics (to date):
   - "dd": Decimal degrees
   - "19.13": Elevation angle (0..90)
   - "dd": Decimal degrees
+  - "-1": Revolutions (if < 0 or > 360)
+  - "revs": Revolutions
   - "0,3,1,0": Calibration quality indicators
   - "*": End of Sentence identifier
   - <HH>: Checksum
