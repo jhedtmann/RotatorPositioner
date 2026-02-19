@@ -22,8 +22,8 @@
 #define SCL_PIN D1
 
 // ---------- WiFi ----------
-const char *SSID = "things@37";
-const char *PASSWORD = "C0nn3ct10n_l05t!";
+const char *SSID = "";
+const char *PASSWORD = "";
 
 // ---------- MQTT ----------
 const char *MQTT_SERVER = "192.168.37.21";
