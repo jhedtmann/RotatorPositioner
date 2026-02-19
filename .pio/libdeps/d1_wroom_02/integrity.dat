@@ -1,0 +1,4 @@
+adafruit/Adafruit BNO055@^1.6.4
+ropg/ezTime@^0.8.3
+arduino-libraries/NTPClient@^3.2.1
+knolleary/PubSubClient@^2.8
