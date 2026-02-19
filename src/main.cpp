@@ -1,5 +1,5 @@
-#define VERSION "2.0.1b"
-#define DEV_DEBUG 1
+#define VERSION "2.0.4b"
+#define DEV_DEBUG 0
 
 #include <Wire.h>
 #include <ESP8266WiFi.h>
@@ -10,8 +10,8 @@
 #include <ezTime.h>
 
 #define SAMPLE_INTERVAL 1000UL       // orientation updates every second
-#define STATUS_INTERVALL 60000UL     // status updates every 10 seconds
-#define CALIBRATION_INTERVAL 10000UL // calibration data every minute
+#define STATUS_INTERVAL 60000UL      // status updates every 60 seconds
+#define CALIBRATION_INTERVAL 10000UL // calibration data every 10 seconds
 #define MQTT_PORT 1883
 #define DECLINATION_DEG 5.07f // Berlin
 // #define DECLINATION_DEG 4.98f        // Graz
@@ -163,7 +163,7 @@ void setup()
     setInterval(3600);
     setDebug(INFO);
     delay(1000);
-    tz.setLocation(F(TIMEZONE));
+    tz.setLocation(TIMEZONE);
 
     delay(1000);
     bno.setExtCrystalUse(true);
@@ -171,8 +171,8 @@ void setup()
 }
 
 time_t ts;
-char payload[512];
-char nmeaStr[83];
+char payload[1024];
+char nmeaStr[88];
 
 // ---------- Main Loop ----------
 void loop()
@@ -196,6 +196,13 @@ void loop()
     float x = q.x();
     float y = q.y();
     float z = q.z();
+
+#if DEV_DEBUG
+    Serial.print(w);
+    Serial.print(x);
+    Serial.print(y);
+    Serial.println(z);
+#endif
 
     // ---- Yaw (Magnetic Azimuth) ----
     float yaw = atan2(2.0f * (w * z + x * y),
@@ -251,6 +258,8 @@ void loop()
     magnetometer = 0;
     bno.getCalibration(&system, &gyro, &accelerometer, &magnetometer);
 
+    int8_t temperature = bno.getTemp();
+
     if (now - lastSample >= SAMPLE_INTERVAL)
     {
         lastSample = now;
@@ -274,17 +283,19 @@ void loop()
                  elevation,
                  revolutions);
 
+        ensureMQTT();
         if (mqtt.connected())
             mqtt.publish(MQTT_ORIENTATION_TOPIC, payload);
 
         // $PATRK,1771493857399,ms,47.33,dd,19.13,dd,-1,revs,0,3,1,0*<HH>\r\n
         snprintf(nmeaStr,
                  sizeof(nmeaStr),
-                 "$PANT,TRK,%lld,ms,%.2f,dd,%.2f,dd,%i,revs,%i,%i,%i,%i",
+                 "$PANT,TRK,%lld,ms,%.2f,dd,%.2f,dd,%i,revs,%i,c,%i,%i,%i,%i",
                  ts,
                  extendedHeading,
                  elevation,
                  revolutions,
+                 temperature,
                  system,
                  gyro,
                  accelerometer,
@@ -299,7 +310,7 @@ void loop()
             Serial.println(String(payload));
         }
     }
-    else if (now - lastStatus >= STATUS_INTERVALL)
+    else if (now - lastStatus >= STATUS_INTERVAL)
     {
         lastStatus = now;
 
@@ -308,13 +319,15 @@ void loop()
                  "{"
                  "  \"dateTime\": \"%s\","
                  "  \"ts\": \"%lld\","
-                 "  \"version\": \"%s\""
-                 "  \"bssid\": \"%s\""
+                 "  \"version\": \"%s\","
+                 "  \"bssid\": \"%s\","
+                 "  \"temperatureC\": %i"
                  "}",
                  tz.dateTime().c_str(),
                  ts,
                  VERSION,
-                 WiFi.BSSIDstr().c_str());
+                 WiFi.BSSIDstr().c_str(), 
+                 temperature);
 
         if (mqtt.connected())
             mqtt.publish(MQTT_STATUS_TOPIC, payload);

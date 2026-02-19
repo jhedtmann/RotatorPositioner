@@ -58,7 +58,7 @@ MQTT payloads are composed of JSON objects. There are three topics (to date):
   Serial output data is formatted as an NMEA-sentence with a checksum value calculated over the data of the sentence (as per NMEA-specification).
 
   ```nmea
-  $PANT,TRK,1771493857399,ms,47.33,dd,19.13,dd,-1,revs,0,3,1,0*<HH>\r\n   
+  $PANT,TRK,1771493857399,ms,47.33,dd,19.13,dd,-1,revs,29,c,0,3,1,0*<HH>\r\n   
   ```
   - "$" : Start of Sentence identifier
   - "PANT,TRK": The Talker and Payload identifier
@@ -73,6 +73,8 @@ MQTT payloads are composed of JSON objects. There are three topics (to date):
   - "dd": Decimal degrees
   - "-1": Revolutions (if < 0 or > 360)
   - "revs": Revolutions
+  - "29": Temperature
+  - "c": Celsius
   - "0,3,1,0": Calibration quality indicators
   - "*": End of Sentence identifier
   - <HH>: Checksum
