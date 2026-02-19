@@ -32,7 +32,8 @@ MQTT payloads are composed of JSON objects. There are three topics (to date):
   {
     "dateTime" : "Thursday, 19-Feb-2026 09:35:11 UTC",
     "ts" : "1771493711925",
-    "bssid" : "B8:69:F4:81:8D:E6"
+    "bssid" : "B8:69:F4:81:8D:E6",
+    "temperatureC": 27
   }
   ```
 
