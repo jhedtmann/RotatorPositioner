@@ -7,8 +7,8 @@
 #include <ezTime.h>
 
 #define SAMPLE_INTERVAL 1000UL       // orientation updates every second
-#define STATUS_INTERVALL 10000UL     // status updates every 10 seconds
-#define CALIBRATION_INTERVAL 60000UL // calibration data every minute
+#define STATUS_INTERVALL 60000UL     // status updates every 10 seconds
+#define CALIBRATION_INTERVAL 10000UL // calibration data every minute
 #define MQTT_PORT 1883
 #define DECLINATION_DEG 5.07f // Berlin
 // #define DECLINATION_DEG 4.98f        // Graz
@@ -176,11 +176,10 @@ void loop()
 
         // ---- Publish JSON ----
         char payload[512];
-
         snprintf(payload, sizeof(payload),
                  "{"
                  "  \"dateTime\": \"%s\","  
-                 "  \"ts\": %i," 
+                 "  \"ts\": \"%lld\"," 
                  "  \"azimuth\": %.2f," 
                  "  \"elevation\": %.2f," 
                  "  \"units\": {" 
@@ -199,9 +198,54 @@ void loop()
     else if (now - lastStatus >= STATUS_INTERVALL)
     {
         lastStatus = now;
+
+        // ---- Publish JSON ----
+        char payload[512];
+        snprintf(payload, sizeof(payload),
+                 "{"
+                 "  \"dateTime\": \"%s\","  
+                 "  \"ts\": \"%lld\"," 
+                 "  \"bssid\": \"%s\"" 
+                "}",
+                 timeStr.c_str(),
+                 ts,
+                 WiFi.BSSIDstr().c_str()
+                );
+
+        mqtt.publish(MQTT_STATUS_TOPIC, payload);
+        Serial.println(String(payload));
     }
     else if (now - lastCalibration >= CALIBRATION_INTERVAL)
     {
         lastCalibration = now;
+
+        uint8_t system, gyro, accelerometer, magnetometer;
+        system = 0;
+        gyro = 0;
+        accelerometer = 0;
+        magnetometer = 0;
+        bno.getCalibration(&system, &gyro, &accelerometer, &magnetometer);
+
+        // ---- Publish JSON ----
+        char payload[512];
+        snprintf(payload, sizeof(payload),
+                 "{"
+                 "  \"dateTime\": \"%s\","  
+                 "  \"ts\": \"%lld\"," 
+                 "  \"system\": %i," 
+                 "  \"gyro\": %i," 
+                 "  \"accelerometer\": %i," 
+                 "  \"magnetometer\": %i" 
+                "}",
+                 timeStr.c_str(),
+                 ts,
+                 system,
+                 gyro,
+                 accelerometer,
+                 magnetometer
+                );
+
+        mqtt.publish(MQTT_CALIBRATION_TOPIC, payload);
+        Serial.println(String(payload));
     }
 }
