@@ -22,8 +22,8 @@
 #define SCL_PIN D1
 
 // ---------- WiFi ----------
-const char *SSID = "";
-const char *PASSWORD = "";
+const char *SSID = "things@37";
+const char *PASSWORD = "C0nn3ct10n_l05t!";
 
 // ---------- MQTT ----------
 const char *MQTT_SERVER = "192.168.37.21";
@@ -53,6 +53,7 @@ float lastHeading = 0.0f;
 int revolutions = 0;
 
 Timezone tz;
+IPAddress ip;
 
 // ---------- I2C -----------
 void recoverI2C()
@@ -77,7 +78,9 @@ void recoverI2C()
 void ensureWiFi()
 {
     if (WiFi.status() == WL_CONNECTED)
+    {
         return;
+    }
 
     unsigned long now = millis();
     if (now - lastWifiAttempt > 5000)
@@ -91,7 +94,9 @@ void ensureWiFi()
 void ensureMQTT()
 {
     if (mqtt.connected())
+    {
         return;
+    }
 
     unsigned long now = millis();
     if (now - lastMqttAttempt > 3000)
@@ -168,6 +173,11 @@ void setup()
     delay(1000);
     bno.setExtCrystalUse(true);
     delay(1000);
+    Serial.println("Starting RotatorPositioner!");
+    ensureWiFi();
+    ip = WiFi.localIP();
+    Serial.print("The IP address of this unit is ");
+    Serial.println(ip);
 }
 
 time_t ts;
@@ -177,9 +187,9 @@ char nmeaStr[88];
 // ---------- Main Loop ----------
 void loop()
 {
-#if DEV_DEBUG
-    Serial.printf("Heap: %u\n", ESP.getFreeHeap());
-#endif
+//#if DEV_DEBUG
+//    Serial.printf("Heap: %u\n", ESP.getFreeHeap());
+//#endif
 
     ensureWiFi();
     ensureMQTT();
@@ -205,34 +215,42 @@ void loop()
 #endif
 
     // ---- Yaw (Magnetic Azimuth) ----
-    float yaw = atan2(2.0f * (w * z + x * y),
-                      1.0f - 2.0f * (y * y + z * z));
-
+    float yaw = atan2(2.0f * (w * z + x * y), 1.0f - 2.0f * (y * y + z * z));
     float heading = yaw * 180.0f / PI;
-
     if (heading < 0)
+    {
         heading += 360.0f;
+    }
 
     // ---- True North Correction ----
     heading += DECLINATION_DEG;
 
     if (heading >= 360.0f)
+    {
         heading -= 360.0f;
+    }
+
     if (heading < 0.0f)
+    {
         heading += 360.0f;
+    }
 
     // ---- Continuous Rotation Tracking ----
     if (heading < lastHeading - 180.0f)
+    {
         revolutions++;
+    }
+
     if (heading > lastHeading + 180.0f)
+    {
         revolutions--;
+    }
 
     float extendedHeading = heading + revolutions * 360.0f;
     lastHeading = heading;
 
     // ---- Elevation from Gravity ----
-    imu::Vector<3> gravity =
-        bno.getVector(Adafruit_BNO055::VECTOR_GRAVITY);
+    imu::Vector<3> gravity = bno.getVector(Adafruit_BNO055::VECTOR_GRAVITY);
 
     float gx = gravity.x();
     float gy = gravity.y();
@@ -290,7 +308,7 @@ void loop()
         // $PATRK,1771493857399,ms,47.33,dd,19.13,dd,-1,revs,0,3,1,0*<HH>\r\n
         snprintf(nmeaStr,
                  sizeof(nmeaStr),
-                 "$PANT,TRK,%lld,ms,%.2f,dd,%.2f,dd,%i,revs,%i,c,%i,%i,%i,%i",
+                 "$PATRK,%lld,ms,%.2f,dd,%.2f,dd,%i,revs,%i,c,%i,%i,%i,%i",
                  ts,
                  extendedHeading,
                  elevation,
@@ -326,7 +344,7 @@ void loop()
                  tz.dateTime().c_str(),
                  ts,
                  VERSION,
-                 WiFi.BSSIDstr().c_str(), 
+                 WiFi.BSSIDstr().c_str(),
                  temperature);
 
         if (mqtt.connected())
