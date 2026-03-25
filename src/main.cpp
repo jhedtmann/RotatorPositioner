@@ -10,6 +10,7 @@
 #include <ezTime.h>
 
 #define SAMPLE_INTERVAL 1000UL       // orientation updates every second
+#define SAMPLE_SIZE 5                // how many samples should be taken to caöculate an average (smoothing)
 #define STATUS_INTERVAL 60000UL      // status updates every 60 seconds
 #define CALIBRATION_INTERVAL 10000UL // calibration data every 10 seconds
 #define MQTT_PORT 1883
@@ -199,13 +200,31 @@ void loop()
     ts = tz.now() * 1000 + tz.ms();
     unsigned long now = millis();
 
-    // ---- Quaternion ----
-    imu::Quaternion q = bno.getQuat();
 
-    float w = q.w();
-    float x = q.x();
-    float y = q.y();
-    float z = q.z();
+    // ---- Quaternion ----
+    imu::Quaternion qa[SAMPLE_SIZE];
+    for (int i = 0; i < SAMPLE_SIZE; i++)
+    {
+        qa[i] = bno.getQuat();
+        delay(SAMPLE_INTERVAL / SAMPLE_SIZE);
+    }
+
+    float w = 0.0;
+    float x = 0.0;
+    float y = 0.0;
+    float z = 0.0;
+    for (int i = 0; i < SAMPLE_SIZE; i++)
+    {
+        w += qa[i].w();
+        x += qa[i].x();
+        y += qa[i].y();
+        z += qa[i].z();
+    }
+
+    w = w / SAMPLE_SIZE;
+    x = x / SAMPLE_SIZE;
+    y = y / SAMPLE_SIZE;
+    z = z / SAMPLE_SIZE;
 
 #if DEV_DEBUG
     Serial.print(w);
