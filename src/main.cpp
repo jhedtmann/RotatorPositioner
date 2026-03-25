@@ -1,4 +1,4 @@
-#define VERSION "2.0.4b"
+#define VERSION "2.0.6b"
 #define DEV_DEBUG 0
 
 #include <Wire.h>
@@ -146,13 +146,13 @@ void setup()
 
     Serial.begin(115200);
 
-    if (!bno.begin())
+    while (!bno.begin())
     {
-        Serial.println("Initial begin() failed");
+        Serial.println("Initial begin() failed!");
         delay(1000);
-        bno.begin(); // second attempt after boot settles
     }
 
+    Serial.println("BNO055 initialised...");
     delay(100); // allow mode switch
     bno.setExtCrystalUse(true);
     delay(10);
@@ -227,10 +227,10 @@ void loop()
     z = z / SAMPLE_SIZE;
 
 #if DEV_DEBUG
-    Serial.print(w);
-    Serial.print(x);
-    Serial.print(y);
-    Serial.println(z);
+    Serial.print("W: "); Serial.println(w);
+    Serial.print("X: "); Serial.println(x);
+    Serial.print("Y: "); Serial.println(y);
+    Serial.print("Z: "); Serial.println(z);
 #endif
 
     // ---- Yaw (Magnetic Azimuth) ----
